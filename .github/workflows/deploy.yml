@@ -27,6 +27,7 @@ jobs:
             cd ~/billboard-backend
 
             echo "📥 Pulling latest code..."
+            git stash
             git pull origin main
 
             echo "📦 Installing dependencies..."
