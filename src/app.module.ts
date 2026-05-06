@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { S3Module } from './common/s3/s3.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { MediaModule } from './modules/media/media.module';
@@ -25,6 +26,7 @@ import { AppService } from './app.service';
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    S3Module,
     AuthModule,
     UsersModule,
     MediaModule,

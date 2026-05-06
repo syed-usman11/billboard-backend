@@ -1,7 +1,6 @@
 import { Controller, Post, Get, Delete, UseGuards, UseInterceptors, UploadedFile, Body, Param, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import 'multer';
 import { MediaService } from './media.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -9,24 +8,13 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
-const storage = diskStorage({
-  destination: './uploads/media',
-  filename: (req, file, cb) => {
-    const randomName = Array(32)
-      .fill(null)
-      .map(() => Math.round(Math.random() * 16).toString(16))
-      .join('');
-    cb(null, `${randomName}${extname(file.originalname)}`);
-  },
-});
-
 @Controller('media')
 export class MediaController {
   constructor(private mediaService: MediaService) {}
 
   @Post('upload')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file', { storage }))
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   async uploadMedia(
     @UploadedFile() file: Express.Multer.File,
     @Body('type') mediaType: string,

@@ -1,11 +1,12 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
 import 'multer';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { S3Service } from '../../common/s3/s3.service';
 
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger(MediaService.name);
   private readonly maxFileSize: number;
   private readonly allowedImageTypes: string[];
   private readonly allowedVideoTypes: string[];
@@ -14,6 +15,7 @@ export class MediaService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private s3Service: S3Service,
   ) {
     this.maxFileSize = this.configService.get('MAX_FILE_SIZE') || 52428800;
     this.allowedImageTypes = (this.configService.get('ALLOWED_IMAGE_TYPES') || 'jpeg,jpg,png,webp').split(',');
@@ -44,17 +46,31 @@ export class MediaService {
       throw new BadRequestException('Invalid media type');
     }
 
+    // Upload to S3
+    const folder = mediaType === 'IMAGE' ? 'images' : 'videos';
+    this.logger.log(`Uploading ${file.originalname} (${file.size} bytes) to S3...`);
+
+    const { url, key } = await this.s3Service.uploadFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      folder,
+    );
+
+    // Save record in database with S3 URL
     const media = await this.prisma.media.create({
       data: {
         userId,
         fileName: file.originalname,
         fileSize: BigInt(file.size),
         type: mediaType,
-        url: file.path || `/uploads/${file.filename}`,
+        url: url,
+        publicId: key,
         status: 'UPLOADED',
       },
     });
 
+    this.logger.log(`Media saved: ${media.id} -> ${url}`);
     return media;
   }
 
@@ -90,6 +106,16 @@ export class MediaService {
 
     if (campaigns > 0) {
       throw new BadRequestException('Cannot delete media that is used in campaigns');
+    }
+
+    // Delete from S3 first if it has a key
+    if (media.publicId) {
+      try {
+        await this.s3Service.deleteFile(media.publicId);
+      } catch (error) {
+        this.logger.error(`Failed to delete S3 file ${media.publicId}: ${error.message}`);
+        // Continue with database deletion even if S3 fails
+      }
     }
 
     return this.prisma.media.delete({
