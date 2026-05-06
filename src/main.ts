@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import cors from 'cors';
 import { AppModule } from './app.module';
+import { BigIntInterceptor } from './common/interceptors/bigint.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -44,6 +45,9 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     optionsSuccessStatus: 200,
   });
+
+  // Convert BigInt fields to strings before JSON serialization
+  app.useGlobalInterceptors(new BigIntInterceptor());
 
   // Global validation pipe
   app.useGlobalPipes(
