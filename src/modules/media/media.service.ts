@@ -71,7 +71,7 @@ export class MediaService {
     });
 
     this.logger.log(`Media saved: ${media.id} -> ${url}`);
-    return media;
+    return { ...media, fileSize: media.fileSize?.toString() };
   }
 
   async getMedia(id: string) {
@@ -83,14 +83,15 @@ export class MediaService {
       throw new NotFoundException('Media not found');
     }
 
-    return media;
+    return { ...media, fileSize: media.fileSize?.toString() };
   }
 
   async getUserMedia(userId: string) {
-    return this.prisma.media.findMany({
+    const list = await this.prisma.media.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
+    return list.map(m => ({ ...m, fileSize: m.fileSize?.toString() }));
   }
 
   async deleteMedia(id: string, userId: string) {
