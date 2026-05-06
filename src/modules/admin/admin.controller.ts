@@ -35,6 +35,11 @@ export class AdminController {
     return this.adminService.getAllCampaigns();
   }
 
+  @Get('media')
+  async getAllMedia() {
+    return this.adminService.getAllMedia();
+  }
+
   @Get('audit-logs')
   async getAuditLogs(@Query('limit') limit: string = '100') {
     return this.adminService.getAuditLogs(parseInt(limit, 10));

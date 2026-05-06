@@ -92,6 +92,14 @@ export class AdminService {
     });
   }
 
+  async getAllMedia() {
+    const list = await this.prisma.media.findMany({
+      include: { user: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return list.map(m => ({ ...m, fileSize: m.fileSize?.toString() }));
+  }
+
   async getAuditLogs(limit: number = 100) {
     return this.prisma.auditLog.findMany({
       include: { user: true },
