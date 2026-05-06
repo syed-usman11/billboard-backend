@@ -125,6 +125,18 @@ export class SchedulesService {
     });
   }
 
+  async getUserSchedules(userId: string) {
+    return this.prisma.schedule.findMany({
+      where: { campaign: { userId } },
+      include: {
+        campaign: { include: { plan: true } },
+        media: true,
+        slot: true,
+      },
+      orderBy: { date: 'asc' },
+    });
+  }
+
   async getApprovedCampaigns() {
     return this.prisma.campaign.findMany({
       where: { status: 'APPROVED' },

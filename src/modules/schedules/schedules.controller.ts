@@ -4,10 +4,17 @@ import { SchedulesService } from './schedules.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('schedules')
 export class SchedulesController {
   constructor(private schedulesService: SchedulesService) {}
+
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  async getUserSchedules(@CurrentUser('id') userId: string) {
+    return this.schedulesService.getUserSchedules(userId);
+  }
 
   @Get('today')
   async getTodaySchedule() {
