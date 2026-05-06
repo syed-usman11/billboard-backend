@@ -16,11 +16,34 @@ async function bootstrap() {
 
   // Security middleware
   app.use(helmet());
-  app.use(cors({
-    origin: frontendUrl || 'http://localhost:3000',
+
+  // Allowed origins - support multiple Vercel deployments
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://adv-app-two.vercel.app',
+  ];
+
+  if (frontendUrl && !allowedOrigins.includes(frontendUrl)) {
+    allowedOrigins.push(frontendUrl);
+  }
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+
+      // Allow any vercel.app subdomain
+      if (origin.endsWith('.vercel.app') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     optionsSuccessStatus: 200,
-  }));
+  });
 
   // Global validation pipe
   app.useGlobalPipes(
