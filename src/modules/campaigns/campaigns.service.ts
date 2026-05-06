@@ -147,6 +147,23 @@ export class CampaignsService {
     });
   }
 
+  async resubmitAfterRejection(id: string, userId: string) {
+    const campaign = await this.getCampaignById(id);
+
+    if (campaign.userId !== userId) {
+      throw new BadRequestException('Cannot resubmit campaign of another user');
+    }
+
+    if (campaign.status !== 'REJECTED') {
+      throw new BadRequestException('Only rejected campaigns can be resubmitted');
+    }
+
+    return this.prisma.campaign.update({
+      where: { id },
+      data: { status: 'PENDING_APPROVAL', rejectionReason: null },
+    });
+  }
+
   async approveCampaign(id: string) {
     const campaign = await this.getCampaignById(id);
 

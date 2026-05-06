@@ -73,6 +73,15 @@ export class CampaignsController {
     return this.campaignsService.submitForApproval(id, userId);
   }
 
+  @Post(':id/resubmit')
+  @UseGuards(JwtAuthGuard)
+  async resubmitCampaign(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.campaignsService.resubmitAfterRejection(id, userId);
+  }
+
   @Post(':id/approve')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
