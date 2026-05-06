@@ -45,7 +45,7 @@ export class CampaignsService {
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
         totalAmount,
-        status: 'DRAFT',
+        status: 'PENDING_APPROVAL',
       },
     });
 
@@ -137,8 +137,8 @@ export class CampaignsService {
       throw new BadRequestException('Cannot submit campaign of another user');
     }
 
-    if (campaign.status !== 'PAYMENT_PENDING') {
-      throw new BadRequestException('Campaign must have payment completed first');
+    if (!['DRAFT', 'PENDING_APPROVAL'].includes(campaign.status)) {
+      throw new BadRequestException('Campaign cannot be submitted in its current status');
     }
 
     return this.prisma.campaign.update({
