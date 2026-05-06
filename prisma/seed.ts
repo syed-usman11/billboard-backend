@@ -6,6 +6,22 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
+  // Create super admin
+  const superAdminPassword = await bcrypt.hash('SuperAdmin@123', 10);
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@billboard.local' },
+    update: {},
+    create: {
+      email: 'superadmin@billboard.local',
+      name: 'Super Admin',
+      phone: '+919999999990',
+      passwordHash: superAdminPassword,
+      role: 'SUPER_ADMIN' as any,
+      isActive: true,
+    },
+  });
+  console.log('✅ Super admin created:', superAdmin.email);
+
   // Create admin user
   const adminPassword = await bcrypt.hash('Admin@123', 10);
   const admin = await prisma.user.upsert({

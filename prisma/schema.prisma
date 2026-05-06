@@ -33,8 +33,11 @@ model User {
 }
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
-  CUSTOMER
+  MANAGER
+  USER
+  CUSTOMER  // legacy – maps to USER
 }
 
 model Media {

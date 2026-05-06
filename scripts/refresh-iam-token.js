@@ -17,6 +17,9 @@ const { Signer } = require('@aws-sdk/rds-signer');
 const fs = require('fs');
 const path = require('path');
 
+// Load .env explicitly so AWS keys are available
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+
 // AWS Configuration - Loaded from environment or defaults
 const AWS_REGION = process.env.AWS_REGION || 'ap-south-1';
 const DB_HOSTNAME = process.env.DB_HOSTNAME || 'database-1.cluster-c1sou4002jiw.ap-south-1.rds.amazonaws.com';
@@ -34,6 +37,10 @@ async function generateToken() {
     hostname: DB_HOSTNAME,
     port: parseInt(DB_PORT),
     username: DB_USERNAME,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
   });
 
   try {
