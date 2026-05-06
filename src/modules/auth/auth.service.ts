@@ -64,9 +64,15 @@ export class AuthService {
 
     // Fallback: try all three if not found by primary detection
     if (!user) {
-      user = await this.prisma.user.findUnique({ where: { email: identifier } })
-        ?? await this.prisma.user.findUnique({ where: { username: identifier } })
-        ?? await this.prisma.user.findFirst({ where: { phone: identifier } });
+      try {
+        user = await this.prisma.user.findUnique({ where: { email: identifier } })
+          ?? await this.prisma.user.findUnique({ where: { username: identifier } })
+          ?? await this.prisma.user.findFirst({ where: { phone: identifier } });
+      } catch {
+        // username column may not exist yet — fall back to email/phone only
+        user = await this.prisma.user.findUnique({ where: { email: identifier } })
+          ?? await this.prisma.user.findFirst({ where: { phone: identifier } });
+      }
     }
 
     if (!user) throw new UnauthorizedException('Invalid credentials');
