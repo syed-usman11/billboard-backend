@@ -1,0 +1,188 @@
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
+
+@Injectable()
+export class CampaignsService {
+  constructor(private prisma: PrismaService) {}
+
+  async createCampaign(userId: string, dto: CreateCampaignDto) {
+    const media = await this.prisma.media.findUnique({
+      where: { id: dto.mediaId },
+    });
+
+    if (!media) {
+      throw new NotFoundException('Media not found');
+    }
+
+    if (media.userId !== userId) {
+      throw new BadRequestException('Media does not belong to you');
+    }
+
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: dto.planId },
+    });
+
+    if (!plan) {
+      throw new NotFoundException('Plan not found');
+    }
+
+    let totalAmount = plan.price;
+
+    if (dto.addonIds && dto.addonIds.length > 0) {
+      const addons = await this.prisma.addon.findMany({
+        where: { id: { in: dto.addonIds } },
+      });
+
+      totalAmount += addons.reduce((sum, addon) => sum + addon.price, 0);
+    }
+
+    const campaign = await this.prisma.campaign.create({
+      data: {
+        userId,
+        mediaId: dto.mediaId,
+        planId: dto.planId,
+        startDate: new Date(dto.startDate),
+        endDate: new Date(dto.endDate),
+        totalAmount,
+        status: 'DRAFT',
+      },
+    });
+
+    if (dto.addonIds && dto.addonIds.length > 0) {
+      await this.prisma.campaignAddon.createMany({
+        data: dto.addonIds.map((addonId) => ({
+          campaignId: campaign.id,
+          addonId,
+        })),
+      });
+    }
+
+    return campaign;
+  }
+
+  async getCampaignById(id: string) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id },
+      include: {
+        media: true,
+        plan: true,
+        payment: true,
+        appliedAddons: {
+          include: { addon: true },
+        },
+        bookings: true,
+      },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException('Campaign not found');
+    }
+
+    return campaign;
+  }
+
+  async getUserCampaigns(userId: string) {
+    return this.prisma.campaign.findMany({
+      where: { userId },
+      include: {
+        media: true,
+        plan: true,
+        payment: true,
+        appliedAddons: {
+          include: { addon: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateCampaign(id: string, userId: string, dto: UpdateCampaignDto) {
+    const campaign = await this.getCampaignById(id);
+
+    if (campaign.userId !== userId) {
+      throw new BadRequestException('Cannot update campaign of another user');
+    }
+
+    if (campaign.status !== 'DRAFT') {
+      throw new BadRequestException('Can only update campaigns in DRAFT status');
+    }
+
+    return this.prisma.campaign.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async deleteCampaign(id: string, userId: string) {
+    const campaign = await this.getCampaignById(id);
+
+    if (campaign.userId !== userId) {
+      throw new BadRequestException('Cannot delete campaign of another user');
+    }
+
+    if (campaign.status !== 'DRAFT') {
+      throw new BadRequestException('Can only delete campaigns in DRAFT status');
+    }
+
+    return this.prisma.campaign.delete({
+      where: { id },
+    });
+  }
+
+  async submitForApproval(id: string, userId: string) {
+    const campaign = await this.getCampaignById(id);
+
+    if (campaign.userId !== userId) {
+      throw new BadRequestException('Cannot submit campaign of another user');
+    }
+
+    if (campaign.status !== 'PAYMENT_PENDING') {
+      throw new BadRequestException('Campaign must have payment completed first');
+    }
+
+    return this.prisma.campaign.update({
+      where: { id },
+      data: { status: 'PENDING_APPROVAL' },
+    });
+  }
+
+  async approveCampaign(id: string) {
+    const campaign = await this.getCampaignById(id);
+
+    if (campaign.status !== 'PENDING_APPROVAL') {
+      throw new BadRequestException('Campaign must be in PENDING_APPROVAL status');
+    }
+
+    return this.prisma.campaign.update({
+      where: { id },
+      data: { status: 'APPROVED' },
+    });
+  }
+
+  async rejectCampaign(id: string, rejectionReason: string) {
+    return this.prisma.campaign.update({
+      where: { id },
+      data: {
+        status: 'REJECTED',
+        rejectionReason,
+      },
+    });
+  }
+
+  async getCampaignsByStatus(status: string) {
+    return this.prisma.campaign.findMany({
+      where: { status: status as any },
+      include: {
+        user: true,
+        media: true,
+        plan: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getPendingApprovals() {
+    return this.getCampaignsByStatus('PENDING_APPROVAL');
+  }
+}

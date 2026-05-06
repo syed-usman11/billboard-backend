@@ -1,0 +1,10 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "rds-db:connect",
+      "Resource": "arn:aws:rds-db:ap-south-1:207909165711:dbuser:cluster-4LEQXZ7AL53AIAIW3FMKHVUOGM/postgres"
+    }
+  ]
+}

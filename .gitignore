@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment - NEVER commit these
+.env
+.env.local
+.env.aws
+.env.*.local
+.env.production
+.env.development
+*.pem
+
+# Build
+dist/
+build/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+prisma/dev.db
+
+# Coverage
+coverage/
+
+# Uploads
+uploads/
+
+# Misc
+.env.test
+.env.test.local

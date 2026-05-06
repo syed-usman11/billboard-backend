@@ -1,0 +1,303 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String
+  phone     String?
+  passwordHash String
+  role      UserRole   @default(CUSTOMER)
+  isActive  Boolean    @default(true)
+
+  // Relations
+  media     Media[]
+  campaigns Campaign[]
+  payments  Payment[]
+  auditLogs AuditLog[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([role])
+  @@index([email])
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}
+
+model Media {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  url       String
+  publicId  String?    // For Cloudinary deletion
+  fileName  String
+  fileSize  BigInt
+  type      MediaType
+  duration  Int?       // In seconds, for videos
+  resolution String?   // e.g., "1920x1080"
+  status    MediaStatus @default(UPLOADED)
+
+  campaigns Campaign[]
+  schedules Schedule[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum MediaStatus {
+  UPLOADED
+  APPROVED
+  REJECTED
+}
+
+model Plan {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  playsPerDay Int
+  price     Float
+  periodType PeriodType
+  isActive  Boolean    @default(true)
+  description String?
+
+  campaigns Campaign[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([isActive])
+}
+
+enum PeriodType {
+  DAY
+  NIGHT
+  FULL_DAY
+}
+
+model Addon {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  price     Float
+  description String?
+  isActive  Boolean    @default(true)
+
+  campaigns CampaignAddon[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([isActive])
+}
+
+model Campaign {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mediaId   String
+  media     Media      @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  planId    String
+  plan      Plan       @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  startDate DateTime
+  endDate   DateTime
+  status    CampaignStatus @default(DRAFT)
+  rejectionReason String?
+
+  totalAmount Float
+  appliedAddons CampaignAddon[]
+
+  payment   Payment?
+  bookings  Booking[]
+  schedules Schedule[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+enum CampaignStatus {
+  DRAFT
+  PAYMENT_PENDING
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+model CampaignAddon {
+  id        String     @id @default(cuid())
+  campaignId String
+  campaign  Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  addonId   String
+  addon     Addon      @relation(fields: [addonId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime   @default(now())
+
+  @@unique([campaignId, addonId])
+  @@index([campaignId])
+}
+
+model Slot {
+  id        String     @id @default(cuid())
+  date      DateTime   @db.Date
+  startTime String     // HH:MM format
+  endTime   String     // HH:MM format
+  periodType PeriodType
+
+  maxCapacity Int       @default(1)
+  bookedCapacity Int    @default(0)
+  isBlocked Boolean     @default(false)
+
+  bookings  Booking[]
+  schedules Schedule[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([date, startTime, endTime, periodType])
+  @@index([date])
+  @@index([periodType])
+  @@index([isBlocked])
+}
+
+model Booking {
+  id        String     @id @default(cuid())
+  campaignId String
+  campaign  Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  slotId    String
+  slot      Slot       @relation(fields: [slotId], references: [id], onDelete: Restrict)
+
+  status    BookingStatus @default(PENDING)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([campaignId, slotId])
+  @@index([campaignId])
+  @@index([slotId])
+  @@index([status])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model Payment {
+  id        String     @id @default(cuid())
+  campaignId String    @unique
+  campaign  Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  amount    Float
+  currency  String     @default("INR")
+  provider  PaymentProvider @default(RAZORPAY)
+
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+
+  status    PaymentStatus @default(PENDING)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([campaignId])
+}
+
+enum PaymentProvider {
+  RAZORPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+model Schedule {
+  id        String     @id @default(cuid())
+  campaignId String
+  campaign  Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  mediaId   String
+  media     Media      @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  slotId    String
+  slot      Slot       @relation(fields: [slotId], references: [id], onDelete: Restrict)
+
+  date      DateTime   @db.Date
+  startTime String     // HH:MM format
+  endTime   String     // HH:MM format
+  playCount Int
+
+  status    ScheduleStatus @default(PENDING)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([campaignId])
+  @@index([date])
+  @@index([status])
+}
+
+enum ScheduleStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+model AuditLog {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action    String
+  entityType String
+  entityId  String
+  metadata  Json?
+
+  createdAt DateTime   @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([createdAt])
+}
