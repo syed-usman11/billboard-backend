@@ -5,6 +5,13 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class SlotsService {
   constructor(private prisma: PrismaService) {}
 
+  async getAllSlots() {
+    return this.prisma.slot.findMany({
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      include: { _count: { select: { bookings: true } } },
+    });
+  }
+
   async getAvailableSlots(date: Date, periodType?: string) {
     const where: any = {
       date: date,

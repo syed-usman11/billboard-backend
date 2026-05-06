@@ -8,6 +8,13 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class SlotsController {
   constructor(private slotsService: SlotsService) {}
 
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async getAllSlots() {
+    return this.slotsService.getAllSlots();
+  }
+
   @Get('available')
   async getAvailableSlots(
     @Query('date') date: string,
