@@ -12,6 +12,11 @@ export class BroadcastsService {
     offerCode?: string;
     expiresAt?: string;
     userIds?: string[];
+    planName?: string;
+    planPrice?: number;
+    planPlaysPerDay?: number;
+    planDurationDays?: number;
+    planPeriodType?: string;
   }) {
     const { userIds, expiresAt, ...rest } = data;
     return this.prisma.broadcast.create({

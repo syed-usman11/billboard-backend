@@ -302,6 +302,14 @@ model Broadcast {
   expiresAt  DateTime?
   status     BroadcastStatus     @default(DRAFT)
   sentAt     DateTime?
+
+  // Custom plan offer (optional)
+  planName         String?
+  planPrice        Float?
+  planPlaysPerDay  Int?
+  planDurationDays Int?
+  planPeriodType   String?
+
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
 
