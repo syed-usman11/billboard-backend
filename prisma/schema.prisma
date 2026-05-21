@@ -19,6 +19,7 @@ model User {
   passwordHash String
   role      UserRole   @default(USER)
   isActive  Boolean    @default(true)
+  accessControl String?
 
   // Relations
   media     Media[]

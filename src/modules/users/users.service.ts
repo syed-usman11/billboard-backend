@@ -14,6 +14,7 @@ export class UsersService {
     phone: true,
     role: true,
     isActive: true,
+    accessControl: true,
     createdAt: true,
   };
 
