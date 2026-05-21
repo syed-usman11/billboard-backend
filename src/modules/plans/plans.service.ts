@@ -7,6 +7,7 @@ export class PlansService {
 
   async getAllPlans() {
     return this.prisma.plan.findMany({
+      where: { sourceBroadcastId: null },
       orderBy: { price: 'asc' },
       include: { _count: { select: { campaigns: true } } },
     });

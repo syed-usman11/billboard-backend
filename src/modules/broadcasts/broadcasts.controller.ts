@@ -33,7 +33,27 @@ export class BroadcastsController {
     return this.broadcastsService.markAsRead(id, req.user.id);
   }
 
+  // ── Book an offer ────────────────────────────────────────────────────────
+  @Post(':id/book')
+  bookOffer(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+    return this.broadcastsService.bookOffer(req.user.id, id, data);
+  }
+
   // ── Admin routes ─────────────────────────────────────────────────────────
+  @Post('check-plan-name')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  checkPlanName(@Body() data: { name: string }) {
+    return this.broadcastsService.checkPlanName(data.name);
+  }
+
+  @Patch(':id/limit')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  updateLimit(@Param('id') id: string, @Body() data: { bookingLimitPerUser: number | null }) {
+    return this.broadcastsService.updateLimit(id, data.bookingLimitPerUser);
+  }
+
   @Post()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')

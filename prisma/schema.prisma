@@ -88,6 +88,7 @@ model Plan {
   isActive  Boolean    @default(true)
   description String?
   durationDays  Int?
+  sourceBroadcastId String?
 
   campaigns Campaign[]
 
@@ -95,6 +96,7 @@ model Plan {
   updatedAt DateTime   @updatedAt
 
   @@index([isActive])
+  @@index([sourceBroadcastId])
 }
 
 enum PeriodType {
@@ -137,6 +139,9 @@ model Campaign {
   totalAmount Float
   appliedAddons CampaignAddon[]
 
+  broadcastId String?
+  broadcast   Broadcast? @relation(fields: [broadcastId], references: [id], onDelete: SetNull)
+
   payment   Payment?
   bookings  Booking[]
   schedules Schedule[]
@@ -147,6 +152,7 @@ model Campaign {
   @@index([userId])
   @@index([status])
   @@index([startDate, endDate])
+  @@index([broadcastId])
 }
 
 enum CampaignStatus {
@@ -310,10 +316,13 @@ model Broadcast {
   planDurationDays Int?
   planPeriodType   String?
 
+  bookingLimitPerUser Int?
+
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
 
   recipients BroadcastRecipient[]
+  campaigns  Campaign[]
 
   @@index([status])
   @@index([category])
