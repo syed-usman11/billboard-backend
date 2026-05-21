@@ -101,6 +101,33 @@ export class AuthService {
     }
   }
 
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      phone: user.phone ?? '',
+      company: (user as any).company ?? '',
+      address: (user as any).address ?? '',
+      city: (user as any).city ?? '',
+      state: (user as any).state ?? '',
+      zipCode: (user as any).zipCode ?? '',
+    };
+  }
+
+  async updateProfile(userId: string, dto: any) {
+    const allowed = ['name', 'phone', 'company', 'address', 'city', 'state', 'zipCode'];
+    const data: any = {};
+    for (const key of allowed) {
+      if (dto[key] !== undefined) data[key] = dto[key];
+    }
+    const user = await this.prisma.user.update({ where: { id: userId }, data });
+    return this.getProfile(user.id);
+  }
+
   private generateTokens(userId: string) {
     const accessToken = this.jwtService.sign(
       { sub: userId },

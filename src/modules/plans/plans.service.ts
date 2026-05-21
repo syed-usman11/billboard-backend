@@ -7,8 +7,8 @@ export class PlansService {
 
   async getAllPlans() {
     return this.prisma.plan.findMany({
-      where: { isActive: true },
-      orderBy: { playsPerDay: 'asc' },
+      orderBy: { price: 'asc' },
+      include: { _count: { select: { campaigns: true } } },
     });
   }
 

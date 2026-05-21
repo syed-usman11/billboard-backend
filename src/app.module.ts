@@ -15,6 +15,7 @@ import { SchedulesModule } from './modules/schedules/schedules.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { BroadcastsModule } from './modules/broadcasts/broadcasts.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -39,6 +40,7 @@ import { AppService } from './app.service';
     AdminModule,
     NotificationsModule,
     AuditLogsModule,
+    BroadcastsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

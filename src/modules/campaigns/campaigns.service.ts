@@ -104,8 +104,8 @@ export class CampaignsService {
       throw new BadRequestException('Cannot update campaign of another user');
     }
 
-    if (campaign.status !== 'DRAFT') {
-      throw new BadRequestException('Can only update campaigns in DRAFT status');
+    if (!['DRAFT', 'PENDING_APPROVAL'].includes(campaign.status)) {
+      throw new BadRequestException('Can only update campaigns pending approval');
     }
 
     return this.prisma.campaign.update({
@@ -121,8 +121,8 @@ export class CampaignsService {
       throw new BadRequestException('Cannot delete campaign of another user');
     }
 
-    if (campaign.status !== 'DRAFT') {
-      throw new BadRequestException('Can only delete campaigns in DRAFT status');
+    if (!['DRAFT', 'PENDING_APPROVAL'].includes(campaign.status)) {
+      throw new BadRequestException('Can only delete campaigns pending approval');
     }
 
     return this.prisma.campaign.delete({
@@ -171,10 +171,34 @@ export class CampaignsService {
       throw new BadRequestException('Campaign must be in PENDING_APPROVAL status');
     }
 
-    return this.prisma.campaign.update({
+    const approved = await this.prisma.campaign.update({
       where: { id },
       data: { status: 'APPROVED' },
+      include: { plan: true },
     });
+
+    // Auto-generate one schedule entry per day for the campaign period
+    await this.prisma.schedule.deleteMany({ where: { campaignId: id } });
+    const entries: any[] = [];
+    const current = new Date(approved.startDate);
+    const end = new Date(approved.endDate);
+    while (current <= end) {
+      entries.push({
+        campaignId: id,
+        mediaId: approved.mediaId,
+        date: new Date(current),
+        startTime: '09:00',
+        endTime: '21:00',
+        playCount: approved.plan?.playsPerDay ?? 10,
+        status: 'PENDING',
+      });
+      current.setDate(current.getDate() + 1);
+    }
+    if (entries.length > 0) {
+      await this.prisma.schedule.createMany({ data: entries });
+    }
+
+    return approved;
   }
 
   async rejectCampaign(id: string, rejectionReason: string) {

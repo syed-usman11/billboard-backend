@@ -25,6 +25,7 @@ model User {
   campaigns Campaign[]
   payments  Payment[]
   auditLogs AuditLog[]
+  broadcastRecipients BroadcastRecipient[]
 
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -86,6 +87,7 @@ model Plan {
   periodType PeriodType
   isActive  Boolean    @default(true)
   description String?
+  durationDays  Int?
 
   campaigns Campaign[]
 
@@ -266,8 +268,8 @@ model Schedule {
   mediaId   String
   media     Media      @relation(fields: [mediaId], references: [id], onDelete: Restrict)
 
-  slotId    String
-  slot      Slot       @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  slotId    String?
+  slot      Slot?      @relation(fields: [slotId], references: [id], onDelete: Restrict)
 
   date      DateTime   @db.Date
   startTime String     // HH:MM format
@@ -289,6 +291,48 @@ enum ScheduleStatus {
   RUNNING
   COMPLETED
   CANCELLED
+}
+
+model Broadcast {
+  id         String              @id @default(cuid())
+  title      String
+  message    String
+  category   BroadcastCategory
+  offerCode  String?
+  expiresAt  DateTime?
+  status     BroadcastStatus     @default(DRAFT)
+  sentAt     DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  recipients BroadcastRecipient[]
+
+  @@index([status])
+  @@index([category])
+}
+
+model BroadcastRecipient {
+  id          String    @id @default(cuid())
+  broadcastId String
+  broadcast   Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([broadcastId, userId])
+  @@index([broadcastId])
+  @@index([userId])
+}
+
+enum BroadcastCategory {
+  GENERAL
+  ADHOC
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SENT
 }
 
 model AuditLog {
